@@ -1,0 +1,5 @@
+.env
+buckets/
+xinchao/state/
+*.log
+.DS_Store

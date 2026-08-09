@@ -1,0 +1,85 @@
+# 心潮·念（Xinchao · Nian）—— 心潮动态心智 + Ombre Brain 记忆库，一键联合部署
+#
+#   cp .env.example .env   # 填必填项（见文件内注释）
+#   docker compose up -d --build
+#
+# 两个服务在同一 docker 网络里内部通信：
+#   - 心潮(dynamic-mind) 通过 http://ombre-brain:8000/mcp 调 OB 的 breath/hold/...
+#   - OB 通过 http://ombre-dynamic-mind:18110 反向读心潮的"此刻状态"（sidecar）
+# 对外只暴露本机端口，由 Nginx / Cloudflare 隧道反代，避免绕过防火墙直接暴露。
+#
+# OB 原生记忆库功能（breath/hold/grow/dream/trace/anchor/... + Dashboard）完整保留。
+
+services:
+  ombre-brain:
+    build: ./ombre-brain
+    image: xinchao-nian/ombre-brain:local
+    container_name: ombre-brain
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OMBRE_HOST_PORT:-18001}:8000"
+    environment:
+      - OMBRE_TRANSPORT=streamable-http
+      - OMBRE_CONFIG_PATH=/app/buckets/config.yaml
+      - OMBRE_COMPRESS_API_KEY=${OMBRE_COMPRESS_API_KEY}
+      - OMBRE_COMPRESS_BASE_URL=${OMBRE_COMPRESS_BASE_URL:-}
+      - OMBRE_COMPRESS_MODEL=${OMBRE_COMPRESS_MODEL:-}
+      - OMBRE_EMBED_API_KEY=${OMBRE_EMBED_API_KEY:-}
+      - OMBRE_EMBED_BASE_URL=${OMBRE_EMBED_BASE_URL:-}
+      - OMBRE_EMBED_MODEL=${OMBRE_EMBED_MODEL:-}
+      - OMBRE_DASHBOARD_PASSWORD=${OMBRE_DASHBOARD_PASSWORD}
+      - OMBRE_MCP_REQUIRE_AUTH=true
+      - OMBRE_MCP_SERVICE_TOKEN=${OMBRE_MCP_SERVICE_TOKEN:-}
+      - OMBRE_TRUSTED_PROXY_CIDRS=${OMBRE_TRUSTED_PROXY_CIDRS:-127.0.0.0/8,::1/128}
+      # sidecar：OB 在内部网络里读心潮的"此刻状态"
+      - DYNAMIC_MIND_URL=${DYNAMIC_MIND_URL:-http://ombre-dynamic-mind:18110}
+      - DYNAMIC_MIND_TOKEN=${DYNAMIC_MIND_TOKEN:-}
+      - OMBRE_HOST_VAULT_DIR=${OMBRE_HOST_VAULT_DIR:-}
+    volumes:
+      - type: bind
+        source: ${OMBRE_HOST_VAULT_DIR:-./buckets}
+        target: /app/buckets
+    networks:
+      - xinchao-nian
+
+  dynamic-mind:
+    build: ./xinchao
+    image: xinchao-nian/dynamic-mind:local
+    container_name: ombre-dynamic-mind
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - ombre-brain
+    environment:
+      # 心潮调 OB 走内部网络（容器名解析），不经公网
+      - OMBRE_MCP_URL=${OMBRE_MCP_URL:-http://ombre-brain:8000/mcp}
+    networks:
+      - xinchao-nian
+    ports:
+      - "127.0.0.1:18110:18110"
+    volumes:
+      - ./xinchao/state:/app/state
+      - ${OMBRE_HOST_VAULT_DIR:-./buckets}:/ombre-buckets:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.50
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18110/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  xinchao-nian:
+    driver: bridge

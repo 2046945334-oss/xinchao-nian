@@ -1,0 +1,26 @@
+心潮·念（Xinchao · Nian）
+Copyright (c) 2026 派派 / 顾川
+
+本项目由两部分组成，许可证不同：
+
+────────────────────────────────────────────────
+1. 心潮（xinchao/ 目录）—— 动态心智引擎
+   Copyright (c) 2026 派派
+   MIT License（见 xinchao/LICENSE）
+
+────────────────────────────────────────────────
+2. Ombre Brain（ombre-brain/ 目录）—— 记忆库
+   本目录包含并修改了 Ombre Brain：
+     - 原作者：P0luz —— Ombre Brain（上游版本记录见 ombre-brain/来源与边界）
+     - 参考 fork：Yinglianchun
+   保留其原始许可证与版权声明（见 ombre-brain/LICENSE）。
+   本项目对 Ombre Brain 的修改清单见 ombre-brain/MODIFICATIONS.md。
+
+   ⚠️ 待发布前必须落实（占位，来源哈希在 docs/ombre-brain/来源与边界.md）：
+     - 拷入上游 LICENSE 原文
+     - 补全 P0luz / Yinglianchun 的仓库 URL 与版本/commit
+     - 写 MODIFICATIONS.md（我们改了哪些：breath-meta domain/tags、压缩模型等）
+
+────────────────────────────────────────────────
+本融合项目整体非纯 MIT。ombre-brain 部分受上游许可证约束；
+商业使用需取得上游 Ombre Brain 作者的书面许可。
